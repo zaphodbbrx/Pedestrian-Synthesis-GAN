@@ -79,6 +79,7 @@ class Pix2PixModel(BaseModel):
         input_B = input['B' if AtoB else 'A']
         #print(input_A.size())
         self.bbox = input['bbox']
+
         self.input_A.resize_(input_A.size()).copy_(input_A)
         self.input_B.resize_(input_B.size()).copy_(input_B)
         
@@ -88,7 +89,9 @@ class Pix2PixModel(BaseModel):
         self.real_A = Variable(self.input_A)
         self.fake_B = self.netG.forward(self.real_A)
         self.real_B = Variable(self.input_B)
-
+        # if sum([1 if t<0 else 0 for t in self.bbox])>0:
+        #     a = 0
+        self.bbox = [torch.clamp(b, 0, 286) for b in self.bbox]
         y,x,w,h = self.bbox
         self.person_crop_real = self.real_B[:,:,y[0]:h[0],x[0]:w[0]]
         self.person_crop_fake = self.fake_B[:,:,y[0]:h[0],x[0]:w[0]]
@@ -186,14 +189,14 @@ class Pix2PixModel(BaseModel):
             self.optimizer_G.step()
 
     def get_current_errors(self):
-        return OrderedDict([('G_GAN_image', self.loss_G_GAN_image.data[0]),
-                            ('G_GAN_person', self.loss_G_GAN_person.data[0]),
-                            ('G_L1', self.loss_G_L1.data[0]),
+        return OrderedDict([('G_GAN_image', self.loss_G_GAN_image.item()),
+                            ('G_GAN_person', self.loss_G_GAN_person.item()),
+                            ('G_L1', self.loss_G_L1.item()),
                             #('G_L1_person', self.loss_G_L1_person.data[0]),
-                            ('D_image_real', self.loss_D_image_real.data[0]),
-                            ('D_image_fake', self.loss_D_image_fake.data[0]),
-                            ('D_person_real', self.loss_D_person_real.data[0]),
-                            ('D_person_fake', self.loss_D_person_fake.data[0])
+                            ('D_image_real', self.loss_D_image_real.item()),
+                            ('D_image_fake', self.loss_D_image_fake.item()),
+                            ('D_person_real', self.loss_D_person_real.item()),
+                            ('D_person_fake', self.loss_D_person_fake.item())
                             ])
 
     def get_current_visuals(self):
